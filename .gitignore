@@ -18,6 +18,10 @@ orig/*/*
 *.map
 *.MAP
 
+# Iso 
+*.iso
+_iso/*
+
 # Build files
 build/
 .ninja_*
@@ -35,6 +39,7 @@ compile_commands.json
 /*.txt
 !requirements.txt
 *.exe
+*.lnk
 
 # For saving work files into (like IDB)
 temp/

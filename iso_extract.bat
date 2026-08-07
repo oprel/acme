@@ -1,0 +1,1 @@
+python -m pyisotools "Animal Crossing (USA).iso" E --dest _iso

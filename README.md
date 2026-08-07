@@ -1,127 +1,42 @@
-Animal Crossing  
-[![Build Status]][actions] [![DOL Progress]][Progress] [![REL Progress]][Progress] [![Discord Badge]][discord]
-=============
+# Animal Crossing: Modern Enhancements
 
-[<img src="https://decomp.dev/ACreTeam/ac-decomp.svg?w=512&h=256" width="512" height="256">][Progress]
+A mod for Animal Crossing for the Nintendo GameCube. It aims to provide as close to a vanilla experience as possible, but made a bit smoother by Quality of Life changes and bugfixes.
 
-[Build Status]: https://github.com/Prakxo/ac-decomp/actions/workflows/build.yml/badge.svg
-[actions]: https://github.com/Prakxo/ac-decomp/actions/workflows/build.yml
-[Progress]: https://decomp.dev/ACreTeam/ac-decomp
-[DOL Progress]: https://decomp.dev/ACReTeam/ac-decomp.svg?mode=shield&measure=code&category=dol&label=DOL
-[REL Progress]: https://decomp.dev/ACReTeam/ac-decomp.svg?mode=shield&measure=code&category=modules&label=REL
-[Discord Badge]: https://img.shields.io/discord/727908905392275526?color=%237289DA&logo=discord&logoColor=%23FFFFFF
-[discord]: https://discord.gg/hKx3FJJgrV
+All changes are surrounded by the `ACME` tag and have comments to explain what they do. Hopefully this makes it easy for other modders to port these over to their own projects and tweak them to their liking.
 
-A decompilation of Animal Crossing for the Nintendo GameCube.
+#### Changes 
+- D-Pad support for menus and dialogue.
+- Nookington's upgrade doesn't require multiplayer.
+- Speed up text with L/R or just by holding a direction.
+- Only donatable items can be selected when donating to the museum.
+- Slighty faster inventory cursor that buffers inputs.
+- Extend max game year to 2099.
+- Trees can now be shaken while holding a net or fishing rod.
+- Letter grading less harsh on long sentences.
+- Included the many bugfixes identified and solved by the decomp team
 
-This repository does **not** contain any game assets or assembly whatsoever. An existing copy of the game is required.
+#### Planned
+- Can use camera controls outdoors.
+- Can send multiple letters at once.
+- D-Pad shortcuts for switching tools and putting the current tool away.
+- Picked-up Bells now go directly into your wallet when there is enough room.
+- Automatic word wrapping when writing letters.
 
-Supported versions:
+Play
+==========
 
-- `GAFE01_00`: Rev 0 (USA)
+TODO
 
-A decompilation of the original N64 version of the game is being worked on [here](https://github.com/zeldaret/af).
 
-<!--
-Quick Guides
+
+Build 
 ============
 
-- [Dumping Game Files](./docs/extract_game.md)
-- [Ghidra Setup](./docs/ghidra_setup.md)
-- [Generating Decomp Context](./docs/generating_decomp_context.md)
-- [decomp.me Basics](./docs/decomp_me_basics.md)
-- [Ghidra Basics](./docs/ghidra_basics.md)
-- [m2c Basics](./docs/m2c_basics.md)
-- [Decomp Basics](./docs/decomp_basics.md)
--->
+TODO
 
-Dependencies
-============
-
-Windows
---------
-
-On Windows, it's **highly recommended** to use native tooling. WSL or msys2 are **not** required.  
-When running under WSL, [objdiff](#diffing) is unable to get filesystem notifications for automatic rebuilds.
-
-- Install [Python](https://www.python.org/downloads/) and add it to `%PATH%`.
-  - Also available from the [Windows Store](https://apps.microsoft.com/store/detail/python-311/9NRWMJP3717K).
-- Download [ninja](https://github.com/ninja-build/ninja/releases) and add it to `%PATH%`.
-  - Quick install via pip: `pip install ninja`
-
-macOS
-------
-
-- Install [ninja](https://github.com/ninja-build/ninja/wiki/Pre-built-Ninja-packages):
-
-  ```sh
-  brew install ninja
-  ```
-
-- Install [wine-crossover](https://github.com/Gcenx/homebrew-wine):
-
-  ```sh
-  brew install --cask --no-quarantine gcenx/wine/wine-crossover
-  ```
-
-After OS upgrades, if macOS complains about `Wine Crossover.app` being unverified, you can unquarantine it using:
-
-```sh
-sudo xattr -rd com.apple.quarantine '/Applications/Wine Crossover.app'
-```
-
-Linux
-------
-
-- Install [ninja](https://github.com/ninja-build/ninja/wiki/Pre-built-Ninja-packages).
-- For non-x86(_64) platforms: Install wine from your package manager.
-  - For x86(_64), [wibo](https://github.com/decompals/wibo), a minimal 32-bit Windows binary wrapper, will be automatically downloaded and used.
-
-Building
-========
-
-- Clone the repository:
-
-  ```sh
-  git clone --recursive https://github.com/Prakxo/ac-decomp.git
-  ```
-
-- Update and Initialize submodules:
-
-  ```sh
-  git submodule update --init --recursive
-  ```
-
-- Copy your game's disc image to `orig/GAFE01_00`.
-  - Supported formats: ISO (GCM), RVZ, WIA, WBFS, CISO, GCZ
-
-- Configure:
-
-  ```sh
-  python configure.py
-  ```
-
-  To use a version other than `GAFE01_00` (USA), specify it with `--version`.
-
-- Build:
-
-  ```sh
-  ninja
-  ```
-
-Diffing
+Special Thanks
 =======
 
-Once the initial build succeeds, an `objdiff.json` should exist in the project root.
+- The ACreTeam for their hard work on the decompilation of Animal Crossing. Without them this would not be possible.
+- Cuyler36, whose additions in the Deluxe mod served as a reference for a lot of these changes
 
-Download the latest release from [encounter/objdiff](https://github.com/encounter/objdiff). Under project settings, set `Project directory`. The configuration should be loaded automatically.
-
-Select an object from the left sidebar to begin diffing. Changes to the project will rebuild automatically: changes to source files, headers, `configure.py`, `splits.txt` or `symbols.txt`.
-
-![](assets/objdiff.png)
-
-Credits
-=======
-
-- jamchamb, Cuyler36, NWPlayer123 and fraser125 for past documentation of Animal Crossing.
-- encounter and NWPlayer123 for [dtk-template](https://github.com/encounter/dtk-template) and setting up the current build system.

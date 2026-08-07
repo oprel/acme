@@ -255,7 +255,9 @@ cflags_common = [
     "-d _LANGUAGE_C",
     "-d F3DEX_GBI_2",
     # Project-specific stuff
-    "-d MUST_MATCH",
+    #"-d MUST_MATCH",
+    "-d ACME",
+    "-d BUGFIXES"
 ]
 
 # DOL flags
