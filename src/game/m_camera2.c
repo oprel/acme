@@ -415,6 +415,10 @@ static void Camera2_Normal_Swing(GAME_PLAY* play, f32* distance, s_xyz* dir) {
 }
 
 static const f32 add_distance_array[3] = { -280.0f, 0.0f, 300.0f };
+#ifdef ACME
+/* Outdoors camera distances */
+static const f32 add_distance_array_field[3] = { -200.0f, 0.0f, 200.0f };
+#endif
 
 static const s16 add_directionY_array[3] = {
     DEG2SHORT_ANGLE(-16.1f), // -2930
@@ -473,7 +477,13 @@ static void Camera2_Get_GoalDistanceAndDirection(GAME_PLAY* play, f32* dist, s_x
     *dist = distance_array[main_index];
     *dir = direction_array[main_index];
 
+#ifdef ACME
+    /* Allow camera to be controlled outdoors */
+    if ((main_index == CAMERA2_PROCESS_NORMAL || main_index == CAMERA2_PROCESS_WADE) 
+    && (!mEv_CheckFirstIntro() || Camera2_InDoorCheck())) {
+#else
     if (main_index == CAMERA2_PROCESS_NORMAL && Camera2_InDoorCheck()) {
+#endif
         if (add_dist_idx < 0 || add_dist_idx >= 3) {
             add_dist_idx = 1;
         }
@@ -482,7 +492,16 @@ static void Camera2_Get_GoalDistanceAndDirection(GAME_PLAY* play, f32* dist, s_x
             add_dir_idx = 1;
         }
 
+#if ACME
+    /* Use specific distances for outdoors to work nicely with the fog settings in m_kankyo */
+    if (Camera2_InDoorCheck()) {
+        *dist += add_distance_array_field[add_dist_idx];
+    } else {
         *dist += add_distance_array[add_dist_idx];
+    }
+#else
+        *dist += add_distance_array[add_dist_idx];
+#endif
         dir->y += add_directionY_array[add_dir_idx];
         dir->x += add_directionX_array[add_dist_idx]; // adjust by add_dist_idx since rotation on X axis should be
                                                       // defined by distance of camera
@@ -962,6 +981,12 @@ static void Camera2_setup_main_Wade(GAME_PLAY* play) {
 
     Camera2_setup_main_Base(play);
     play->camera.requested_main_index_priority = 9;
+
+#ifdef ACME
+    /* Reset outdoor camera changes on acre transition */
+    play->camera.indoor_distance_addition_idx = 1;
+    play->camera.indoor_direction_addition_idx = 1;
+#endif
 }
 
 static void Camera2_SetPos_Wade(GAME_PLAY* play) {
