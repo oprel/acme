@@ -1314,6 +1314,11 @@ extern int mSP_GetRealShopLevel() {
 
     if (sales_sum >= mSP_DSUPER_SUM && Save_Get(shop).visitor_flag != FALSE) {
         return mSP_SHOP_TYPE_DSUPER;
+#ifdef ACME
+    /* Can upgrade to Nookington's without having a player visit the town. However, needs twice the sales sum to do so. */
+    } else if (sales_sum >= mSP_DSUPER_SUM * 2){
+        return mSP_SHOP_TYPE_DSUPER;
+#endif
     } else if (sales_sum >= mSP_SUPER_SUM) {
         return mSP_SHOP_TYPE_SUPER;
     }
