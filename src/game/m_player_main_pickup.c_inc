@@ -17,6 +17,39 @@ static int Player_actor_request_main_pickup(GAME* game, mActor_name_t item, cons
     return FALSE;
 }
 
+#ifdef ACME
+static u32 Player_actor_get_bell_amount_from_item(mActor_name_t item) {
+    Private_c* priv = Common_Get(now_private);
+    int type = mNT_get_itemTableNo(item);
+    int idx = item & 0xFF;
+
+    if (type != 9) return 0;
+    switch (idx) {
+        case 0: return 1000;
+        case 1: return 10000;
+        case 2: return 30000;
+    }
+
+    if (idx >= 3 && idx <= 0x0B) {
+        return (u32)(idx - 2) * 100;
+    }
+    if (idx >= 0x0C && idx <= 0x6E) {
+        return (u32)(idx - 0x0B) * 1000;
+    }
+
+    return 0;
+}
+
+static int Player_actor_add_bells_to_wallet(u32 amount) {
+    Private_c* priv = Common_Get(now_private);
+    if (amount > mPr_WALLET_MAX - priv->inventory.wallet) {
+        return FALSE;
+    }
+    priv->inventory.wallet += amount;
+    return TRUE;
+}
+#endif
+
 static void Player_actor_setup_main_Pickup(ACTOR* actorx, GAME* game) {
     PLAYER_ACTOR* player = (PLAYER_ACTOR*)actorx;
     f32 morph_counter;
@@ -52,8 +85,8 @@ static void Player_actor_setup_main_Pickup(ACTOR* actorx, GAME* game) {
 #ifdef ACME
     {
         /* bells go straight to wallet if whole amount fits, otherwise pick up as normal */
-        u32 bell_amount = mPr_GetAmountForMoneyItem(item);
-        if (bell_amount > 0 && mPr_GivePossessionBells(bell_amount)) {
+        u32 bell_amount = Player_actor_get_bell_amount_from_item(item);
+        if (bell_amount > 0 && Player_actor_add_bells_to_wallet(bell_amount)) {
             if (target_pos_p != NULL) {
                 mFI_SetFG_common(EMPTY_NO, *target_pos_p, TRUE);
             }
