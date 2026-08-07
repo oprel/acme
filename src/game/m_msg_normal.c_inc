@@ -1,5 +1,10 @@
 static int mMsg_Check_ScrollOrder(mMsg_Window_c* msg_p) {
+#ifdef ACME
+  /* Allow to continue text by tapping D-Pad */
+  return (chkTrigger(BUTTON_A) || chkTrigger(BUTTON_B) || chkTrigger(BUTTON_DDOWN) || chkTrigger(BUTTON_DUP) || chkTrigger(BUTTON_DLEFT) || chkTrigger(BUTTON_DRIGHT));
+#else
   return (chkTrigger(BUTTON_A) || chkTrigger(BUTTON_B));
+#endif
 }
 
 static int mMsg_MsgTimeEnd_dec(mMsg_Window_c* msg_p) {

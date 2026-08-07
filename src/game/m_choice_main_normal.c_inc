@@ -24,6 +24,12 @@ static int mChoice_Main_Normal_SetChoice(mChoice_c* choice, GAME* game) {
         int* selected_idx_p = &choice->selected_choice_idx;
         int cursor_sfx = FALSE;
 
+    #ifdef ACME
+        /* Select choice in dialogue with D-Pad */
+        if (chkButton(BUTTON_DDOWN)){   percent -= 1.0f;}
+        if (chkButton(BUTTON_DUP)){     percent += 1.0f;}
+    #endif
+
         switch (*choice_automove_p) {
             case mChoice_AUTOMOVE_INCREMENT_WAIT: {
                 if (percent < 0.0f || chkButton(BUTTON_CDOWN)) {

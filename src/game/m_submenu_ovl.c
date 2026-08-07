@@ -2124,6 +2124,12 @@ static void mSM_make_trigger_data(Submenu* submenu) {
     int trigger = (getButton() & 0xF) | getTrigger();
     mSM_Control_c* control = &submenu->overlay->menu_control;
 
+#ifdef ACME
+    /* Allow D-Pad to work as the C-stick to select in menus */
+    trigger |= (getButton() & (BUTTON_DUP | BUTTON_DDOWN | BUTTON_DLEFT | BUTTON_DRIGHT)) >> 8;
+    trigger &= ~(BUTTON_DUP | BUTTON_DDOWN | BUTTON_DLEFT | BUTTON_DRIGHT);
+#endif
+
     if (gamePT->mcon.move_pR > 0.5f) {
         u16 angle = gamePT->mcon.move_angle + DEG2SHORT_ANGLE2(45.0f);
 
