@@ -289,6 +289,10 @@ struct tag_ovl_s {
     /* 0x376 */ u16 _02;
     /* 0x378 */ mTG_cporiginal_mark_entry_c original_entries[mTG_ORG_TYPE_NUM];
     /* 0x390 */ mTG_mark_original_c original_mark;
+#ifdef ACME
+    /* buffer inputs while cursor is moving */
+    u32 buffered_inputs;
+#endif    
 };
 
 extern int mTG_mark_main(Submenu*, mSM_MenuInfo_c*, int, int*);

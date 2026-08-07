@@ -8005,6 +8005,14 @@ static void mTG_move_func(Submenu* submenu, mSM_MenuInfo_c* menu_info) {
     mHD_Ovl_c* hand_ovl = submenu->overlay->hand_ovl;
     mIV_Ovl_c* inv_ovl = submenu->overlay->inventory_ovl;
 
+#ifdef ACME
+    /* if cursor still moving, buffer buttons being pressed */
+    if (hand_ovl->info.move_flag) {
+        #define BUTTON_MASK (BUTTON_A | BUTTON_B | BUTTON_X | BUTTON_Y | BUTTON_Z | BUTTON_L | BUTTON_R | BUTTON_START)
+        tag_ovl->buffered_inputs |= (submenu->overlay->menu_control.trigger & BUTTON_MASK);
+    }
+#endif
+
     if (tag_ovl->sel_tag_idx < 0 || tag_ovl->sel_tag_idx >= mTG_TAG_NUM) {
         return;
     }
@@ -8049,6 +8057,13 @@ static void mTG_move_func(Submenu* submenu, mSM_MenuInfo_c* menu_info) {
         }
     } else if (hand_ovl->info.move_flag == FALSE && hand_ovl->info.act != mHD_ACTION_CLOSE &&
                hand_ovl->info.act != mHD_ACTION_CLOSE2 && hand_ovl->info.act != mHD_ACTION_OPEN) {
+    #ifdef ACME
+        /* first frame inputs are available: send buffered inputs if they exist */
+        if (tag_ovl->buffered_inputs != 0) {
+            submenu->overlay->menu_control.trigger |= tag_ovl->buffered_inputs;
+            tag_ovl->buffered_inputs = 0;
+        }
+    #endif
         if (tag_ovl->nw_gba_flags & 0x1) {
             mTG_return_tag_init(submenu, mTG_TYPE_NONE, mTG_RETURN_KEEP);
             tag_ovl->nw_gba_flags &= ~0x1;
