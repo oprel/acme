@@ -10,7 +10,11 @@ extern "C" {
 #endif
 
 #define mTI_MIN_YEAR 1
+#ifdef ACME
+#define mTI_MAX_YEAR 99
+#else
 #define mTI_MAX_YEAR 30
+#endif
 
 enum {
     mTI_IDX_HOUR,
