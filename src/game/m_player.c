@@ -1447,6 +1447,132 @@ static void Player_actor_main_Demo_get_golden_item(ACTOR*, GAME*);
 static void Player_actor_main_Demo_get_golden_item2(ACTOR*, GAME*);
 static void Player_actor_main_Demo_get_golden_axe_wait(ACTOR*, GAME*);
 
+#ifdef ACME
+#define IS_CUSTOM_UMBRELLA(item) ((item) >= ITM_MY_ORG_UMBRELLA0 && (item) <= ITM_MY_ORG_UMBRELLA7)
+
+/* slot the cycle search starts from; updated after every switch/putaway */
+static int sToolSlot = 0;
+static int sToolDirection = 0;
+
+static int Player_actor_wrap_tool_slot(int slot) {
+    if (slot < 0) {
+        return mPr_POCKETS_SLOT_COUNT - 1;
+    }
+    if (slot >= mPr_POCKETS_SLOT_COUNT) {
+        return 0;
+    }
+    return slot;
+}
+
+static void Player_actor_switch_tool_slot(GAME* game, int direction) {
+    Private_c* priv = Common_Get(now_private);
+    mActor_name_t held_item = priv->equipment;
+    mActor_name_t slot_item;
+    int search_slot;
+    int i;
+
+    if (sToolSlot < 0 || sToolSlot >= mPr_POCKETS_SLOT_COUNT) {
+        sToolSlot = 0;
+    }
+
+    /* try the last used slot first */
+    if (held_item == EMPTY_NO) {
+        slot_item = priv->inventory.pockets[sToolSlot];
+
+        if (mPr_GET_ITEM_COND(priv->inventory.item_conditions, sToolSlot) == mPr_ITEM_COND_NORMAL &&
+            ITEM_IS_TOOL(slot_item)) {
+            priv->equipment = slot_item;
+            mPr_SetPossessionItem(priv, sToolSlot, EMPTY_NO, 0);
+            Player_actor_request_main_takeout_item(game, mPlayer_REQUEST_PRIORITY_37);
+            return;
+        }
+    }
+
+    /* direction changed: undo the previous step so the search lands on the tool just swapped out */
+    if (sToolDirection != 0 && direction != sToolDirection) {
+        sToolSlot = Player_actor_wrap_tool_slot(sToolSlot - sToolDirection);
+    }
+
+    search_slot = sToolSlot;
+
+    for (i = 0; i < mPr_POCKETS_SLOT_COUNT; i++) {
+        slot_item = priv->inventory.pockets[search_slot];
+
+        if (mPr_GET_ITEM_COND(priv->inventory.item_conditions, search_slot) == mPr_ITEM_COND_NORMAL &&
+            ITEM_IS_TOOL(slot_item)) {
+            if (held_item != EMPTY_NO && !IS_CUSTOM_UMBRELLA(held_item)) {
+                mPr_SetPossessionItem(priv, search_slot, held_item, 0);
+            } else {
+                mPr_SetPossessionItem(priv, search_slot, EMPTY_NO, 0);
+            }
+
+            priv->equipment = slot_item;
+            sToolSlot = Player_actor_wrap_tool_slot(search_slot + direction);
+            sToolDirection = direction;
+            Player_actor_request_main_takeout_item(game, mPlayer_REQUEST_PRIORITY_37);
+            return;
+        }
+
+        search_slot = Player_actor_wrap_tool_slot(search_slot + direction);
+    }
+}
+
+static void Player_actor_putaway_tool(GAME* game) {
+    Private_c* priv = Common_Get(now_private);
+    mActor_name_t held_item = priv->equipment;
+    int slot;
+
+    if (held_item == EMPTY_NO) {
+        return;
+    }
+
+    if (!IS_CUSTOM_UMBRELLA(held_item)) {
+        slot = mPr_GetPossessionItemIdx(priv, EMPTY_NO);
+        if (slot == -1) {
+            sAdo_SysTrgStart(0x100A);
+            return;
+        }
+
+        mPr_SetPossessionItem(priv, slot, held_item, 0);
+        sToolSlot = slot;
+    }
+
+    priv->equipment = EMPTY_NO;
+    sToolDirection = 0;
+    Player_actor_request_main_putin_item(game, 0x25);
+}
+
+static void Player_actor_check_and_switch_tool(GAME* game) {
+    GAME_PLAY* play = (GAME_PLAY*)game;
+    PLAYER_ACTOR* player;
+    int main_index;
+
+    /* outdoors only, and not while a submenu is open or opening */
+    if (mFI_GET_TYPE(mFI_GetFieldId()) != mFI_FIELDTYPE2_FG || play->submenu.start_refuse ||
+        play->submenu.current_menu_type != mSM_OVL_NONE || play->submenu.menu_type != mSM_OVL_NONE) {
+        return;
+    }
+
+    player = GET_PLAYER_ACTOR_GAME(game);
+    main_index = player->now_main_index;
+
+    /* only during free movement (walk/run/stand/dash), not mid-demo */
+    if (main_index < mPlayer_INDEX_WAIT || main_index > mPlayer_INDEX_DASH ||
+        Player_actor_Check_is_demo_mode(main_index) != 0 ||
+        Player_actor_Check_is_demo_mode(player->requested_main_index) != 0) {
+        return;
+    }
+
+    if (chkTrigger(BUTTON_DLEFT)) {
+        Player_actor_switch_tool_slot(game, -1);
+    } else if (chkTrigger(BUTTON_DRIGHT)) {
+        Player_actor_switch_tool_slot(game, 1);
+    } else if (chkTrigger(BUTTON_DDOWN)) {
+        Player_actor_putaway_tool(game);
+    }
+}
+#endif
+
 extern void Player_actor_move(ACTOR* actorx, GAME* game) {
     static const mPlayer_MAIN_PROC proc[] = {
         &Player_actor_main_Dma,
@@ -1582,6 +1708,10 @@ extern void Player_actor_move(ACTOR* actorx, GAME* game) {
 
     (*proc[idx])(actorx, game);
     Player_actor_move_other_func2(actorx, game); //
+
+#ifdef ACME
+    Player_actor_check_and_switch_tool(game);
+#endif
 }
 
 typedef void (*mPlayer_DRAW_PROC)(ACTOR*, GAME*);
