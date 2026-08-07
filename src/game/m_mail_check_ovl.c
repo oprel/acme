@@ -1380,7 +1380,14 @@ static int mMck_check_key_type_F(u8* str, int len) {
       }
 
       if (sentence_len >= 75) {
+      #ifdef ACME
+        /*  Reduced penalty for long sentences since the average English sentence is between 75-100 characters long.
+            Keeping this penalty as severe as it is marks a lot of normal letters as incomprehensible by villagers.
+            Including almost half of the letters sent by the game itself. */
+        points -= 50;
+      #else
         points = -150;
+      #endif
         break;
       }
     }
