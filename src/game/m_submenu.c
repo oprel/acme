@@ -8,6 +8,12 @@
 #include "m_quest.h"
 #include "libultra/libultra.h"
 
+#ifdef ACME
+/* Check for already donated items when donating to museum */
+#include "m_museum_display.h"
+#endif
+
+
 static mSM_dlftbl_c SubmenuArea_dlftbl[mSM_DLF_NUM] = { { NULL, 0, 0, 0, 0, 0, "submenu_ovl" },
                                                         { NULL, 0, 0, 0, 0, 0, "player_actor" } };
 
@@ -564,11 +570,17 @@ static int mSM_check_item_for_curator(int slot_no, int param_2) {
     mActor_name_t item = priv->inventory.pockets[slot_no];
     int res = FALSE;
 
+#ifdef ACME
+ /* Only show items that can still be donated in museum menu */
+    if (mMmd_GetDisplayInfo(item) == mMmd_DISPLAY_CAN_DONATE){
+        res = TRUE;
+    }
+#else
     if (item != EMPTY_NO && mPr_GET_ITEM_COND(priv->inventory.item_conditions, slot_no) == mPr_ITEM_COND_NORMAL &&
         item != ITM_KNIFE_AND_FORK && !(item >= ITM_EXCERCISE_CARD00 && item <= ITM_EXCERCISE_CARD12)) {
         res = TRUE;
     }
-
+#endif
     return res;
 }
 
