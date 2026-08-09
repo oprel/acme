@@ -43,6 +43,9 @@ enum {
     mTG_MARK_TYPE_MUSIC,
     mTG_MARK_TYPE_NEEDLEWORK_ORIGINAL,
     mTG_MARK_TYPE_CPORIGINAL_ORIGINAL,
+#ifdef ACME
+    mTG_MARK_TYPE_INV_SEND_MAIL, // mailing multiple letters at once
+#endif
 
     mTG_MARK_TYPE_NUM
 };
@@ -141,6 +144,9 @@ enum {
     mTG_TYPE_TAG_NW_SELECT_PUT,
     mTG_TYPE_76,
     mTG_TYPE_TAG_PASSWORD_ITEM,
+#ifdef ACME
+    mTG_TYPE_SEND_MAIL_MARK, //mailing multiple letters at once
+#endif
 
     mTG_TYPE_NUM
 };

@@ -604,6 +604,41 @@ static u8 mTG_catalog_str[][mCL_TAG_STR_SIZE] = {
     "Music     ",
 };
 // clang-format on
+#ifdef ACME
+/* Functions to help with sending multiple letters at the same time */
+static void mTG_close_window(Submenu*, mSM_MenuInfo_c*, int);
+static void mTG_send_mail_mark_proc(Submenu* submenu, mSM_MenuInfo_c* menu_info) {
+    mIV_Ovl_c* inv_ovl = submenu->overlay->inventory_ovl;
+    Submenu_Item_c* item_p = submenu->item_p;
+    int count = 0;
+    int i;
+
+    for (i = 0; i < mPr_INVENTORY_MAIL_COUNT; i++) {
+        if ((inv_ovl->mail_mark_bitfield2 & (1 << i)) != 0) {
+            item_p[count].slot_no = i;
+            item_p[count].item = ITM_QST_LETTER;
+            count++;
+        }
+    }
+    inv_ovl->mail_mark_bitfield2 = 0;
+
+    submenu->selected_item_num = count;
+    submenu->unk_164 = TRUE;
+    submenu->after_mode = aHOI_REQUEST_PUTAWAY;
+    mPlib_request_main_give_from_submenu(ITM_QST_LETTER, submenu->after_mode, FALSE, TRUE);
+    mTG_close_window(submenu, menu_info, TRUE);
+}
+
+static mTG_tag_word_c mTG_tag_word_send_mail_mark = {
+    "Send            ",
+    &mTG_send_mail_mark_proc,
+};
+
+static mTG_tag_word_c* mTG_send_mail_mark[] = {
+    &mTG_tag_word_send_mail_mark,
+    &mTG_tag_word_yameru,
+};
+#endif
 
 static mTG_tag_word_c* mTG_field_default[] = {
     &mTG_tag_word_tukamu,
@@ -1140,6 +1175,9 @@ static mTG_tag_data_c mTG_label_table[] = {
     { mTG_tag_nw_select_put, ARRAY_COUNT(mTG_tag_nw_select_put) },           /* mTG_TYPE_TAG_NW_SELECT_PUT */
     { NULL, 0 },                                                             /* mTG_TYPE_76 */
     { mTG_tag_password_item, ARRAY_COUNT(mTG_tag_password_item) },           /* mTG_TYPE_TAG_PASSWORD_ITEM */
+#ifdef ACME // mailing multiple letters at once
+    { mTG_send_mail_mark, ARRAY_COUNT(mTG_send_mail_mark) },                 /* mTG_TYPE_SEND_MAIL_MARK */
+#endif
 };
 
 static void mTG_init_tag_data_item_win(Submenu*);
@@ -3345,8 +3383,11 @@ static void mTG_dump_mail_mark_exe_proc(Submenu* submenu, mSM_MenuInfo_c* menu_i
             Mail_c* mail = &Common_Get(now_home)->mailbox[i];
 
             // clear selected mail if it has a present or is from the player (sending)
-            if (mail->present != EMPTY_NO ||
-                (mail->content.font != mMl_FONT_RECV_READ && mail->content.font != mMl_FONT_RECV_PLAYER_PRESENT_READ)) {
+            if (mail->present != EMPTY_NO
+#ifndef ACME // Allow the deletion of unread mail
+                || (mail->content.font != mMl_FONT_RECV_READ && mail->content.font != mMl_FONT_RECV_PLAYER_PRESENT_READ)
+#endif
+            ) {
                 mailbox_ovl->mark_bitfield &= ~(1 << i);
             }
         }
@@ -3362,8 +3403,11 @@ static void mTG_dump_mail_mark_exe_proc(Submenu* submenu, mSM_MenuInfo_c* menu_i
             Mail_c* mail = &cpmail_ovl->card_mail->mail[page][i];
 
             // clear selected mail if it has a present or is from the player (sending)
-            if (mail->present != EMPTY_NO ||
-                (mail->content.font != mMl_FONT_RECV_READ && mail->content.font != mMl_FONT_RECV_PLAYER_PRESENT_READ)) {
+            if (mail->present != EMPTY_NO
+#ifndef ACME // Allow the deletion of unread mail
+                || (mail->content.font != mMl_FONT_RECV_READ && mail->content.font != mMl_FONT_RECV_PLAYER_PRESENT_READ)
+#endif
+            ) {
                 cpmail_ovl->mark_bitfield &= ~(1 << i);
             }
         }
@@ -3378,8 +3422,11 @@ static void mTG_dump_mail_mark_exe_proc(Submenu* submenu, mSM_MenuInfo_c* menu_i
         Mail_c* mail = &Now_Private->mail[i];
 
         // clear selected mail if it has a present or is from the player (sending)
-        if (mail->present != EMPTY_NO ||
-            (mail->content.font != mMl_FONT_RECV_READ && mail->content.font != mMl_FONT_RECV_PLAYER_PRESENT_READ)) {
+        if (mail->present != EMPTY_NO
+#ifndef ACME // Allow the deletion of unread mail
+            || (mail->content.font != mMl_FONT_RECV_READ && mail->content.font != mMl_FONT_RECV_PLAYER_PRESENT_READ)
+#endif
+        ) {
             inv_ovl->mail_mark_bitfield2 &= ~(1 << i);
         }
     }
@@ -4293,7 +4340,10 @@ static int mTG_mark_enable_check(int menu_type, int param, int table, u8 field_t
                             }
                             break;
                         case mTG_TABLE_MAIL:
-                            if (field_type == mFI_FIELDTYPE2_FG) {
+#ifndef ACME // mail can be deleted indoors
+                            if (field_type == mFI_FIELDTYPE2_FG)
+#endif
+                            {
                                 res = mTG_MARK_TYPE_INV_FG_MAIL;
                             }
                             break;
@@ -4307,6 +4357,13 @@ static int mTG_mark_enable_check(int menu_type, int param, int table, u8 field_t
                         res = mTG_MARK_TYPE_INV_SELL_ITEM;
                     }
                     break;
+#ifdef ACME // mailing multiple letters at once
+                case mSM_IV_OPEN_SEND_MAIL:
+                    if (table == mTG_TABLE_MAIL) {
+                        res = mTG_MARK_TYPE_INV_SEND_MAIL;
+                    }
+                    break;
+#endif
             }
             break;
         case mSM_OVL_MAILBOX:
@@ -4342,6 +4399,23 @@ typedef union tag_mark_field_u {
     u32 music_box[2];
     u8 u8array[8];
 } mTG_mark_field_u;
+
+#ifdef ACME
+/* Toggle checkmarks when sending multiple letters */
+static int mTG_send_mail_mark_check(mIV_Ovl_c* inv_ovl, Mail_c* mail, int mode, mTG_mark_field_u** mark_bitfield_p,
+                                     mTG_mark_field_u* updated_mark_bitfield, int table_idx, int* max_mark_count) {
+    *(u16**)mark_bitfield_p = &inv_ovl->mail_mark_bitfield2;
+    updated_mark_bitfield->field16 = 1 << table_idx;
+    *max_mark_count = mPr_INVENTORY_MAIL_COUNT;
+
+    if (mode != mTG_MARK_CHK && mode != mTG_MARK_OFF && mode != mTG_MARK_CLR) {
+        if (mMl_check_not_used_mail(mail) == TRUE || mMl_check_send_mail(mail) == FALSE) {
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+#endif
 
 static int mTG_mark_main_sub(Submenu* submenu, int menu_type, int param, int table, int table_idx, Mail_c* mail,
                              int mode, mTG_mark_field_u** mark_bitfield_p, int* max_mark_count,
@@ -4422,8 +4496,10 @@ static int mTG_mark_main_sub(Submenu* submenu, int menu_type, int param, int tab
 
                     if (menu_type == mSM_OVL_MAILBOX) {
                         if (mail->present != EMPTY_NO ||
+#ifndef ACME // Allow the deletion of unread mail
                             (mail->content.font != mMl_FONT_RECV_READ &&
                              mail->content.font != mMl_FONT_RECV_PLAYER_PRESENT_READ) ||
+#endif
                             (mTG_mail_check(mail) & mTG_MAIL_FLAG_RECV) != mTG_MAIL_FLAG_RECV) {
                             return FALSE;
                         }
@@ -4432,8 +4508,11 @@ static int mTG_mark_main_sub(Submenu* submenu, int menu_type, int param, int tab
                             return FALSE;
                         }
                     } else {
-                        if ((mail->content.font != mMl_FONT_RECV_READ &&
+                        if (
+#ifndef ACME // Allow the deletion of unread mail
+                            (mail->content.font != mMl_FONT_RECV_READ &&
                              mail->content.font != mMl_FONT_RECV_PLAYER_PRESENT_READ) ||
+#endif
                             (mTG_mail_check(mail) & mTG_MAIL_FLAG_RECV) != mTG_MAIL_FLAG_RECV ||
                             (mTG_mail_check(mail) & mTG_MAIL_FLAG_PRESENT) == mTG_MAIL_FLAG_PRESENT) {
                             return FALSE;
@@ -4470,6 +4549,11 @@ static int mTG_mark_main_sub(Submenu* submenu, int menu_type, int param, int tab
             }
             break;
         }
+#ifdef ACME // mailing multiple letters at once
+        case mTG_MARK_TYPE_INV_SEND_MAIL:
+            return mTG_send_mail_mark_check(inv_ovl, mail, mode, mark_bitfield_p, updated_mark_bitfield, table_idx,
+                                             max_mark_count);
+#endif
         case mTG_MARK_TYPE_MUSIC: {
             *(u32**)mark_bitfield_p = music_ovl->mark_flg;
             updated_mark_bitfield->music_box[(table_idx / 32)] = 1 << ((u32)table_idx - (table_idx / 32) * 32);
@@ -6814,6 +6898,12 @@ static int mTG_select_tag_decide_mail(Submenu* submenu, mSM_MenuInfo_c* menu_inf
                     ret_tag_type = mTG_TYPE_CPACK_MAIL_MARK;
                     break;
                 default:
+#ifdef ACME // mailing multiple letters at once
+                    if (menu_info->data0 == mSM_IV_OPEN_SEND_MAIL) {
+                        ret_tag_type = mTG_TYPE_SEND_MAIL_MARK;
+                        break;
+                    }
+#endif
                     ret_tag_type = mTG_TYPE_FIELD_MAIL_MARK;
                     break;
             }
@@ -6850,15 +6940,21 @@ static int mTG_select_tag_decide_mail(Submenu* submenu, mSM_MenuInfo_c* menu_inf
 
     if (mMl_check_not_used_mail(mail) != TRUE) {
         if (menu_info->menu_type == mSM_OVL_CPMAIL) {
-            if (mail->content.font == mMl_FONT_RECV_PLAYER_PRESENT || mail->content.font == mMl_FONT_RECV) {
+            if (mail->present != EMPTY_NO
+#ifndef ACME // Allow the deletion of unread mail
+                || mail->content.font == mMl_FONT_RECV_PLAYER_PRESENT || mail->content.font == mMl_FONT_RECV
+#endif
+            ) {
                 return mTG_TYPE_ROOM_RMAIL;
-            } else {
-                return mTG_TYPE_DEF_RMAIL;
             }
+            return mTG_TYPE_DEF_RMAIL;
         }
 
         if (menu_info->menu_type == mSM_OVL_MAILBOX) {
-            if (mail->content.font == mMl_FONT_RECV_PLAYER_PRESENT || mail->content.font == mMl_FONT_RECV ||
+            if (
+#ifndef ACME // Allow the deletion of unread mail
+                mail->content.font == mMl_FONT_RECV_PLAYER_PRESENT || mail->content.font == mMl_FONT_RECV ||
+#endif
                 mail->present != EMPTY_NO) {
                 return mTG_TYPE_ROOM_RMAIL;
             } else {
@@ -6884,6 +6980,7 @@ static int mTG_select_tag_decide_mail(Submenu* submenu, mSM_MenuInfo_c* menu_inf
             }
 
             ret = mail_next_type[mail_flags];
+#ifndef ACME // Allow the deletion of unread mail
             if (Common_Get(field_type) != mFI_FIELDTYPE2_FG || mail->content.font == mMl_FONT_RECV_PLAYER_PRESENT ||
                 mail->content.font == mMl_FONT_RECV) {
                 if (ret == mTG_TYPE_DEF_SMAIL) {
@@ -6892,6 +6989,7 @@ static int mTG_select_tag_decide_mail(Submenu* submenu, mSM_MenuInfo_c* menu_inf
                     ret = mTG_TYPE_ROOM_RMAIL;
                 }
             }
+#endif
 
             return ret;
         }
