@@ -19,3 +19,11 @@ echo Rebuilding ISO:
 python -m pyisotools "%ROOT_DIR%" B --dest "%~dp0%OUT_ISO%" || exit /b
 
 echo Success! Created: %OUT_ISO%
+
+if exist "%~dp0xdelta3.exe" (
+    echo Creating xdelta patch:
+    "%~dp0xdelta3.exe" -e -f -s "Animal Crossing (USA).iso" "%OUT_ISO%" "Animal Crossing (ACME).xdelta" || exit /b
+    echo Success! Created: Animal Crossing ^(ACME^).xdelta
+)
+
+endlocal
