@@ -3279,6 +3279,11 @@ extern int mPlib_Check_scoop_after(GAME* game, xyz_t* pos_p, mActor_name_t* item
 }
 
 extern int mPlib_Check_scene_able_change_camera_pos(void) {
+#if ACME
+    /* Always allow camera movement */
+    return TRUE;
+#endif
+
     if (mFI_CheckFieldData()) {
         int field_type = mFI_GET_TYPE(mFI_GetFieldId());
 
