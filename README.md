@@ -1,10 +1,11 @@
 # Animal Crossing: Modern Enhancements
 
-A mod for Animal Crossing for the Nintendo GameCube. It aims to provide as close to a vanilla experience as possible, but made a bit smoother by Quality of Life changes and bugfixes.
+ACME is a mod for Animal Crossing for the Nintendo GameCube. It aims to provide as close to a vanilla experience as possible, but made a bit smoother with quality of life changes and conveniences people are used to from modern Animal Crossing games.
 
-All changes are surrounded by the `ACME` tag and have comments to explain what they do. Hopefully this makes it easy for other modders to port these over to their own projects and tweak them to their liking.
+All changes are surrounded by the `ACME` tag and have comments to explain what they do. Other modders are encouraged to copy these changes over to their own projects and tweak them to their liking.
 
-#### Changes 
+
+### Changes 
 - D-Pad support for menus and dialogue.
 - Nookington's upgrade doesn't require multiplayer.
 - Speed up text with L/R or just by holding a direction.
@@ -13,14 +14,20 @@ All changes are surrounded by the `ACME` tag and have comments to explain what t
 - Extend max game year to 2099.
 - Trees can now be shaken while holding a net or fishing rod.
 - Letter grading less harsh on long sentences.
-- Included the many bugfixes identified and solved by the decomp team
-
-#### Planned
-- Can use camera controls outdoors.
+- Can control camera outdoors.
 - Can send multiple letters at once.
 - D-Pad shortcuts for switching tools and putting the current tool away.
 - Picked-up Bells now go directly into your wallet when there is enough room.
 - Automatic word wrapping when writing letters.
+
+### Bugfixes
+The build also includes all the bugfixes identified and fixed by the Animal Crossing Decompilation team. They are identified with the `BUGFIXES` tag. Some notable bugs in the original game include:
+- Unable to receive oranges as a foreign fruit gift from villagers
+- Saplings looking at the wrong acres for their neighbour checks
+- Cherry blossom weather doesn't appear.
+- Incorrect acre treates as the dump for town rating.
+- Snail flies away when released.
+
 
 Play
 ==========
