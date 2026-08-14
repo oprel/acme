@@ -571,8 +571,8 @@ static int mSM_check_item_for_curator(int slot_no, int param_2) {
     int res = FALSE;
 
 #ifdef ACME
- /* Only show items that can still be donated in museum menu */
-    if (mMmd_GetDisplayInfo(item) == mMmd_DISPLAY_CAN_DONATE){
+ /* Only show items that can still be donated in museum menu (plus unidentified fossils so blathers can explain) */
+    if (item == ITM_FOSSIL || mMmd_GetDisplayInfo(item) == mMmd_DISPLAY_CAN_DONATE){
         res = TRUE;
     }
 #else
