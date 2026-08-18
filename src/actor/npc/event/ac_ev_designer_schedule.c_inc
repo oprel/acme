@@ -105,6 +105,9 @@ static void aEDSN_game_end_wait_init(EV_DESIGNER_ACTOR* designer, GAME_PLAY* pla
     designer->wash_time = 1080;
     designer->clean_speed = 0.0f;
     tmp_data_p->button_count = 0;
+#ifdef ACME // 2 extra seconds for cleaning gracie's car
+    designer->wash_time += 120;
+#endif
 }
 
 static void aEDSN_game_end_call_init(EV_DESIGNER_ACTOR* designer, GAME_PLAY* play) {
