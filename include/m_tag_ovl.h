@@ -44,7 +44,8 @@ enum {
     mTG_MARK_TYPE_NEEDLEWORK_ORIGINAL,
     mTG_MARK_TYPE_CPORIGINAL_ORIGINAL,
 #ifdef ACME
-    mTG_MARK_TYPE_INV_SEND_MAIL, // mailing multiple letters at once
+    mTG_MARK_TYPE_INV_SEND_MAIL,    // mailing multiple letters at once
+    mTG_MARK_TYPE_INV_PUTIN_ITEM,   // put multiple items in storage
 #endif
 
     mTG_MARK_TYPE_NUM
@@ -145,7 +146,8 @@ enum {
     mTG_TYPE_76,
     mTG_TYPE_TAG_PASSWORD_ITEM,
 #ifdef ACME
-    mTG_TYPE_SEND_MAIL_MARK, //mailing multiple letters at once
+    mTG_TYPE_SEND_MAIL_MARK,    //mailing multiple letters at once
+    mTG_TYPE_PUTIN_ITEM_MARK,   // put multiple items in storage
 #endif
 
     mTG_TYPE_NUM
@@ -295,8 +297,7 @@ struct tag_ovl_s {
     /* 0x376 */ u16 _02;
     /* 0x378 */ mTG_cporiginal_mark_entry_c original_entries[mTG_ORG_TYPE_NUM];
     /* 0x390 */ mTG_mark_original_c original_mark;
-#ifdef ACME
-    /* buffer inputs while cursor is moving */
+#ifdef ACME // buffer inputs while cursor is moving
     u32 buffered_inputs;
 #endif    
 };

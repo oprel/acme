@@ -638,6 +638,35 @@ static mTG_tag_word_c* mTG_send_mail_mark[] = {
     &mTG_tag_word_send_mail_mark,
     &mTG_tag_word_yameru,
 };
+
+/* Functions to help with putting multiple items in storage at the same time */
+static void mTG_putin_mark_proc(Submenu* submenu, mSM_MenuInfo_c* menu_info) {
+    mIV_Ovl_c* inv_ovl = submenu->overlay->inventory_ovl;
+    Submenu_Item_c* item_p = submenu->item_p;
+    int count = 0;
+    int i;
+
+    for (i = 0; i < mPr_POCKETS_SLOT_COUNT; i++) {
+        if ((inv_ovl->item_mark_bitfield & (1 << i)) != 0) {
+            item_p[count].item = Now_Private->inventory.pockets[i];
+            item_p[count].slot_no = i;
+            count++;
+        }
+    }
+
+    submenu->selected_item_num = count;
+    mTG_close_window(submenu, menu_info, TRUE);
+}
+
+static mTG_tag_word_c mTG_tag_word_putin_mark = {
+    "Put Away All    ",
+    &mTG_putin_mark_proc,
+};
+
+static mTG_tag_word_c* mTG_putin_item_mark[] = {
+    &mTG_tag_word_putin_mark,
+    &mTG_tag_word_yameru,
+};
 #endif
 
 static mTG_tag_word_c* mTG_field_default[] = {
@@ -1175,8 +1204,9 @@ static mTG_tag_data_c mTG_label_table[] = {
     { mTG_tag_nw_select_put, ARRAY_COUNT(mTG_tag_nw_select_put) },           /* mTG_TYPE_TAG_NW_SELECT_PUT */
     { NULL, 0 },                                                             /* mTG_TYPE_76 */
     { mTG_tag_password_item, ARRAY_COUNT(mTG_tag_password_item) },           /* mTG_TYPE_TAG_PASSWORD_ITEM */
-#ifdef ACME // mailing multiple letters at once
+#ifdef ACME
     { mTG_send_mail_mark, ARRAY_COUNT(mTG_send_mail_mark) },                 /* mTG_TYPE_SEND_MAIL_MARK */
+    { mTG_putin_item_mark, ARRAY_COUNT(mTG_putin_item_mark) },               /* mTG_TYPE_PUTIN_ITEM_MARK */
 #endif
 };
 
@@ -4357,10 +4387,15 @@ static int mTG_mark_enable_check(int menu_type, int param, int table, u8 field_t
                         res = mTG_MARK_TYPE_INV_SELL_ITEM;
                     }
                     break;
-#ifdef ACME // mailing multiple letters at once
-                case mSM_IV_OPEN_SEND_MAIL:
+#ifdef ACME
+                case mSM_IV_OPEN_SEND_MAIL: // mailing multiple letters at once
                     if (table == mTG_TABLE_MAIL) {
                         res = mTG_MARK_TYPE_INV_SEND_MAIL;
+                    }
+                    break;
+                case mSM_IV_OPEN_PUTIN_FTR: // put multiple items in storage
+                    if (table == mTG_TABLE_ITEM) {
+                        res = mTG_MARK_TYPE_INV_PUTIN_ITEM;
                     }
                     break;
 #endif
@@ -4414,6 +4449,21 @@ static int mTG_send_mail_mark_check(mIV_Ovl_c* inv_ovl, Mail_c* mail, int mode, 
         }
     }
     return TRUE;
+}
+
+/* Toggle checkmarks when putting away multiple items */
+static int mTG_putin_item_mark_check(mIV_Ovl_c* inv_ovl, int mode, mTG_mark_field_u** mark_bitfield_p,
+                                      mTG_mark_field_u* updated_mark_bitfield, int table_idx, int* max_mark_count) {
+    mActor_name_t item = Now_Private->inventory.pockets[table_idx];
+
+    *(u16**)mark_bitfield_p = &inv_ovl->item_mark_bitfield;
+    updated_mark_bitfield->field16 = 1 << table_idx;
+    *max_mark_count = mPr_POCKETS_SLOT_COUNT;
+
+    if ((mode == mTG_MARK_CHK || mode == mTG_MARK_OFF || mode == mTG_MARK_CLR) || item != EMPTY_NO) {
+        return TRUE;
+    }
+    return FALSE;
 }
 #endif
 
@@ -4549,10 +4599,13 @@ static int mTG_mark_main_sub(Submenu* submenu, int menu_type, int param, int tab
             }
             break;
         }
-#ifdef ACME // mailing multiple letters at once
-        case mTG_MARK_TYPE_INV_SEND_MAIL:
+#ifdef ACME 
+        case mTG_MARK_TYPE_INV_SEND_MAIL: // mailing multiple letters at once
             return mTG_send_mail_mark_check(inv_ovl, mail, mode, mark_bitfield_p, updated_mark_bitfield, table_idx,
                                              max_mark_count);
+        case mTG_MARK_TYPE_INV_PUTIN_ITEM: // put multiple items in storage
+            return mTG_putin_item_mark_check(inv_ovl, mode, mark_bitfield_p, updated_mark_bitfield, table_idx,
+                                              max_mark_count);
 #endif
         case mTG_MARK_TYPE_MUSIC: {
             *(u32**)mark_bitfield_p = music_ovl->mark_flg;
@@ -6855,6 +6908,12 @@ static int mTG_select_tag_decide_item(Submenu* submenu, mSM_MenuInfo_c* menu_inf
                     ret_tag_type = mTG_TYPE_SHRINE_ITEM;
                     break;
                 case mSM_IV_OPEN_PUTIN_FTR:
+#ifdef ACME // put multiple items in storage
+                    if (inv_ovl->item_mark_bitfield != 0 && (inv_ovl->item_mark_bitfield & (1 << idx)) != 0) {
+                        ret_tag_type = mTG_TYPE_PUTIN_ITEM_MARK;
+                        break;
+                    }
+#endif
                 case mSM_IV_OPEN_MINIDISK:
                     ret_tag_type = mTG_TYPE_PUTIN_ITEM;
                     break;
