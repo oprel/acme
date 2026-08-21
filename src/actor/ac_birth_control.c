@@ -262,6 +262,11 @@ static void aBC_set_boat(BIRTH_CONTROL_ACTOR* birth_control, GAME_PLAY* play) {
     if (boat_ut_p != NULL) {
       mActor_name_t boat_item = *boat_ut_p;
 
+#ifdef ACME //always spawn kapp'n to take you to the island (even without GBA connected)
+      mGcgba_InitVar();
+      boat_item = BOAT;
+#else
+
       switch (mGcgba_ConnectEnabled()) {
         case GBA2_GBA_STATE_SUCCESS:
           /* Successfully connected to the GBA */
@@ -277,7 +282,7 @@ static void aBC_set_boat(BIRTH_CONTROL_ACTOR* birth_control, GAME_PLAY* play) {
           /* Still transmitting */
           break;
       }
-
+#endif
       *boat_ut_p = boat_item;
     }
   }

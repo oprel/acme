@@ -129,6 +129,9 @@ static void aSEN_touch_wharf_end_wait(NPC_SENDO_ACTOR* sendo, GAME_PLAY* play) {
     if (boat_demo->action == aBTD_ACTION_PL_RIDE_OFF_START_WAIT) {
         if (boat_demo->at_island == FALSE) {
             act = 12;
+#ifdef ACME // skip GBA line if accessed island without the use of GBA
+            act = (sendo->use_island_data_in_ram == TRUE) ? 14 : 12;
+#endif
         } else {
             act = 13;
         }
@@ -765,6 +768,13 @@ static void aSEN_chk_power_agb_talk_proc(NPC_SENDO_ACTOR* sendo, GAME_PLAY* play
 
             /* Try up to 5 times to connect with the GBA */
             sendo->gba_comm_tries++;
+#ifdef ACME // If no GBA detected, just travel to the island in RAM anyway.
+            if (sendo->gba_comm_tries >= 3) {
+                mGcgba_InitVar();
+                sendo->use_island_data_in_ram = TRUE;
+                mDemo_Set_OrderValue(mDemo_ORDER_NPC0, 9, 1);
+                aSEN_change_talk_proc(sendo, aSEN_TALK_CHK_EXIST_ISLAND_DATA_IN_RAM);
+#else
             if (sendo->gba_comm_tries >= 5) {
                 mMsg_Window_c* msg_p = mMsg_Get_base_window_p();
 
@@ -772,6 +782,7 @@ static void aSEN_chk_power_agb_talk_proc(NPC_SENDO_ACTOR* sendo, GAME_PLAY* play
                 mMsg_ChangeMsgData(msg_p, aSEN_get_msg_no(sendo, 0x3075));
                 mMsg_Set_ForceNext(msg_p);
                 aSEN_change_talk_proc(sendo, aSEN_TALK_END_WAIT);
+#endif
             } else {
                 mGcgba_InitVar();
             }
