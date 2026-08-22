@@ -3072,7 +3072,11 @@ static int mCD_SaveHome_bg_create_file(mCD_memMgr_c* mgr, mCD_memMgr_fileInfo_c*
     if (chan != -1) {
         card_info = &mgr->cards[chan];
         mgr->_019C = 1;
+#ifdef ACME //  Allow savefiles to moved and copied between memory cards
+        res = mCD_create_file_bg(l_mCD_land_file_name_dummy, 0,
+#else
         res = mCD_create_file_bg(l_mCD_land_file_name_dummy, CARD_ATTR_NO_MOVE | CARD_ATTR_NO_COPY,
+#endif
             entry->filesize, chan, &card_info->result, &card_info->fileNo);
         card_info->game_result = mCD_TransErrorCode(card_info->result);
         if (res == mCD_RESULT_SUCCESS) {
@@ -3257,8 +3261,11 @@ static int mCD_SaveHome_bg_set_file_permission(mCD_memMgr_c* mgr, mCD_memMgr_fil
             filename = l_mCD_land_file_name_dummy;
         }
         card_info = &mgr->cards[chan];
-        res = mCD_set_file_permission_bg(filename, CARD_ATTR_NO_MOVE | CARD_ATTR_NO_COPY, chan, &card_info->result,
-                                         &card_info->fileNo);
+#ifdef ACME //  Allow savefiles to moved and copied between memory cards
+        res = mCD_set_file_permission_bg(filename, 0, chan, &card_info->result, &card_info->fileNo);
+#else
+        res = mCD_set_file_permission_bg(filename, CARD_ATTR_NO_MOVE | CARD_ATTR_NO_COPY, chan, &card_info->result, &card_info->fileNo);
+#endif                                
         card_info->game_result = mCD_TransErrorCode(card_info->result);
 
         if (res == mCD_RESULT_SUCCESS) {
@@ -6891,7 +6898,8 @@ static int mCD_SaveStation_Passport_create_file(mCD_memMgr_c* mgr, mCD_memMgr_fi
     if (chan != -1) {
         card = &mgr->cards[chan];
         size = entry->filesize;
-        ret = mCD_create_file_bg(mgr->filename, CARD_ATTR_NO_MOVE | CARD_ATTR_NO_COPY, entry->filesize, (s32)chan, &card->result, &card->fileNo);
+        /* ACME - allow the player save file to be freely copied/moved between memory cards */
+        ret = mCD_create_file_bg(mgr->filename, 0, entry->filesize, (s32)chan, &card->result, &card->fileNo);
         card->game_result = mCD_TransErrorCode(card->result);
         if (ret == mCD_RESULT_SUCCESS) {
             fileInfo->proc++;

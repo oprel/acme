@@ -886,6 +886,7 @@ static s32 memcard_data_save(
         CARDGetAttributes(chan, fileInfo.fileNo, &cardAttr);
         u8 saved_attr = cardAttr;
 
+#ifndef ACME // Allow savefiles to moved and copied
         if ((famicomCommon.memcard_game_header.flags0.no_copy_flag)) {
             saved_attr |= CARD_ATTR_NO_COPY;
         }
@@ -893,6 +894,7 @@ static s32 memcard_data_save(
         if ((famicomCommon.memcard_game_header.flags1.no_move_flag)) {
             saved_attr |= CARD_ATTR_NO_MOVE;
         }
+#endif
 
         saved_attr |= cardAttr;
         if ((saved_attr) != 0) {
