@@ -15,6 +15,222 @@
 #include "sys_matrix.h"
 #include "m_rcp.h"
 #include "m_lib.h"
+#ifdef ACME
+/* Allow typing in the editor directly using a keyboard or keyboard controller */
+#include "dolphin/os.h"
+#include "dolphin/si.h"
+
+#define KBD_CHANNEL 1 // second controller port
+#define KBD_CMD_DIRECT 0x54000000
+
+#define KBD_CMD_BASE 255 // store out of range of normal character codes
+#define KBD_CMD_BACKSPACE   (KBD_CMD_BASE + mED_COMMAND_BACKSPACE)
+#define KBD_CMD_LEFT        (KBD_CMD_BASE + mED_COMMAND_CURSOL_LEFT)
+#define KBD_CMD_RIGHT       (KBD_CMD_BASE + mED_COMMAND_CURSOL_RIGHT)
+#define KBD_CMD_UP          (KBD_CMD_BASE + mED_COMMAND_CURSOL_UPPER)
+#define KBD_CMD_DOWN        (KBD_CMD_BASE + mED_COMMAND_CURSOL_LOWER)
+#define KBD_CMD_ENTER       (KBD_CMD_BASE + 10)
+#define KBD_CMD_HOME        (KBD_CMD_BASE + 11)
+#define KBD_CMD_END         (KBD_CMD_BASE + 12)
+#define KBD_CMD_PGUP        (KBD_CMD_BASE + 13)
+#define KBD_CMD_PGDN        (KBD_CMD_BASE + 14)
+
+enum {
+    KBD_KEY_NONE = 0x00,
+
+    KBD_KEY_A = 0x10,
+    KBD_KEY_Z = 0x29,
+
+    KBD_KEY_1 = 0x2A,
+    KBD_KEY_0 = 0x33,
+
+    KBD_KEY_TAB         = 0x51,
+    KBD_KEY_CTRL        = 0x56,
+    KBD_KEY_ALT         = 0x57,
+    KBD_KEY_BACKSPACE   = 0x50,
+    KBD_KEY_DELETE      = 0x4E,
+    KBD_KEY_CAPSLOCK    = 0x53,
+    KBD_KEY_LSHIFT      = 0x54,
+    KBD_KEY_RSHIFT      = 0x55,
+    KBD_KEY_SPACE       = 0x59,
+    KBD_KEY_HOME        = 0x06,
+    KBD_KEY_END         = 0x07,
+    KBD_KEY_PGUP        = 0x08,
+    KBD_KEY_PGDN        = 0x09,
+    KBD_KEY_LEFTARROW   = 0x5C,
+    KBD_KEY_DOWNARROW   = 0x5D,
+    KBD_KEY_UPARROW     = 0x5E,
+    KBD_KEY_RIGHTARROW  = 0x5F,
+    KBD_KEY_ENTER       = 0x61,
+    KBD_KEY_MINUS       = 0x34,
+    KBD_KEY_TILDE       = 0x35,
+    KBD_KEY_PLUS        = 0x39,
+    KBD_KEY_COLON       = 0x4F,
+    KBD_KEY_QUOTE       = 0x37,
+    KBD_KEY_COMMA       = 0x3C,
+    KBD_KEY_PERIOD      = 0x3D,
+    KBD_KEY_SLASH       = 0x3E,
+    KBD_KEY_BACKSLASH   = 0x3F,
+    KBD_KEY_L_BRACKET   = 0x38,
+    KBD_KEY_R_BRACKET   = 0x3B,
+};
+
+#define KBD_QUEUE_SIZE 8
+#define KBD_SCAN_MAX   0x64
+
+// auto-repeat when holding
+#define KBD_REPEAT_INITIAL 30
+#define KBD_REPEAT_RATE    6
+
+
+
+static u32 sKBDCmdBlock;
+static u32 sKBDResponse[2];
+static u8 sKBDCurKeys[3];
+static u8 sKBDPrevKeys[3];
+static u8 sKBDHeldFrames[KBD_SCAN_MAX];
+static BOOL sKBDCapsActive;
+
+static int sKBDQueue[KBD_QUEUE_SIZE];
+static int sKBDQueueLen;
+
+static void KBD_QueuePush(int code) {
+    if (sKBDQueueLen < KBD_QUEUE_SIZE) sKBDQueue[sKBDQueueLen++] = code;
+}
+
+static int KBD_KeyHeld(u8 scancode) {
+    return scancode == sKBDCurKeys[0] || scancode == sKBDCurKeys[1] || scancode == sKBDCurKeys[2];
+}
+
+static int KBD_TranslateKey(u8 scancode, int shift, int alt) {
+    switch(scancode){
+        case KBD_KEY_CTRL:
+        case KBD_KEY_ALT:
+        case KBD_KEY_CAPSLOCK: 
+        case KBD_KEY_LSHIFT:
+        case KBD_KEY_RSHIFT: return -1;
+    }
+
+    if (alt) { // return icon from relative position on virtual keyboard
+        static const u8 icon_table[] = {
+            0xa7, 0xcb, 0xc9, 0xa9, 0xb2, 0xab, 0xaa, 0xb5, 0xbd, 0xc2,
+            0xc3, 0xc4, 0xc5, 0xcc, 0xbe, 0xbf, 0xb0, 0xb3, 0xa8, 0xba,
+            0xbc, 0xca, 0xb1, 0xc8, 0xbb, 0xc7, 0x2b, 0xb9, 0x2f, 0x3b,
+            0x5c, 0xb8, 0xc6, 0xb6, 0xb7, 0xaf,
+        };
+
+        if (scancode >= KBD_KEY_A && scancode <= KBD_KEY_0) {
+            return icon_table[scancode - KBD_KEY_A];
+        }
+    }
+
+    if (scancode >= KBD_KEY_A && scancode <= KBD_KEY_Z) {
+        return (shift ? CHAR_A : CHAR_a) + (scancode - KBD_KEY_A);
+    }
+
+    if (scancode >= KBD_KEY_1 && scancode <= KBD_KEY_0) {
+        int idx = (scancode == KBD_KEY_0) ? 9 : (scancode - KBD_KEY_1);
+        if (shift) {
+            static const u8 shifted[] = { CHAR_EXCLAMATION, CHAR_AT_SIGN, CHAR_HASHTAG, CHAR_SYMBOL_MONEY, CHAR_PERCENT, CHAR_SYMBOL_HEART, CHAR_AMPERSAND, CHAR_SYMBOL_STAR, CHAR_OPEN_PARENTHESIS, CHAR_CLOSE_PARENTHESIS};
+            return shifted[idx];
+        }
+        return (idx == 9) ? CHAR_ZERO : CHAR_ONE + idx;
+    }
+
+    if (scancode == KBD_KEY_DELETE){
+        KBD_QueuePush(KBD_CMD_RIGHT);
+        scancode = KBD_KEY_BACKSPACE;
+    }
+
+    switch (scancode) {
+        case KBD_KEY_MINUS:         return shift ? CHAR_UNDERSCORE : CHAR_DASH;
+        case KBD_KEY_PLUS:          return shift ? CHAR_PLUS : CHAR_EQUALS;
+        case KBD_KEY_COLON:         return shift ? CHAR_COLON : CHAR_SEMICOLON;
+        case KBD_KEY_QUOTE:         return shift ? CHAR_QUOTATION : CHAR_APOSTROPHE;
+        case KBD_KEY_COMMA:         return shift ? CHAR_LESS_THAN : CHAR_COMMA;
+        case KBD_KEY_PERIOD:        return shift ? CHAR_GREATER_THAN : CHAR_PERIOD;
+        case KBD_KEY_SLASH:         return shift ? CHAR_QUESTIONMARK : CHAR_FORWARD_SLASH;
+        case KBD_KEY_TILDE:         return shift ? CHAR_TILDE : CHAR_INTERPUNCT;
+        case KBD_KEY_L_BRACKET:     return shift ? CHAR_LINES_CONVERGE_RIGHT : CHAR_SYMBOL_MUSIC_NOTE;
+        case KBD_KEY_R_BRACKET:     return shift ? CHAR_LINES_CONVERGE_LEFT : CHAR_SYMBOL_DROPLET;
+        case KBD_KEY_BACKSLASH:     return shift ? CHAR_BROKEN_BAR : CHAR_SYMBOL_ANNOYED;
+
+        case KBD_KEY_TAB:           return CHAR_SPACE_3;
+        case KBD_KEY_SPACE:         return CHAR_SPACE;
+        case KBD_KEY_ENTER:         return KBD_CMD_ENTER;
+        case KBD_KEY_BACKSPACE:     return KBD_CMD_BACKSPACE;
+        case KBD_KEY_LEFTARROW:     return KBD_CMD_LEFT;
+        case KBD_KEY_RIGHTARROW:    return KBD_CMD_RIGHT;
+        case KBD_KEY_UPARROW:       return KBD_CMD_UP;
+        case KBD_KEY_DOWNARROW:     return KBD_CMD_DOWN;
+        case KBD_KEY_HOME:          return KBD_CMD_HOME;
+        case KBD_KEY_END:           return KBD_CMD_END;
+        default:                 return -1;
+    }
+}
+
+
+static void KBD_TransferCallback(s32 chan, u32 sr, OSContext* context) {
+    sKBDCurKeys[0] = sKBDCurKeys[1] = sKBDCurKeys[2] = KBD_KEY_NONE;
+
+    if (sr & (SI_ERROR_NO_RESPONSE | SI_ERROR_COLLISION | SI_ERROR_UNDER_RUN | SI_ERROR_OVER_RUN)) return;
+
+    { //validate checksum
+        u32* words = (u32*)sKBDResponse;
+        u8 counter = (u8)(words[0] >> 24);
+        u8 key0 = (u8)(words[1] >> 24);
+        u8 key1 = (u8)(words[1] >> 16);
+        u8 key2 = (u8)(words[1] >> 8);
+        u8 checksum = (u8)(words[1] & 0xFF);
+        if ((u8)(key0 ^ key1 ^ key2 ^ counter) != checksum) return;
+
+        sKBDCurKeys[0] = key0;
+        sKBDCurKeys[1] = key1;
+        sKBDCurKeys[2] = key2;
+    }
+}
+
+static void KBD_Init(void) {
+    sKBDQueueLen = 0;
+    sKBDCurKeys[0] = sKBDCurKeys[1] = sKBDCurKeys[2] = KBD_KEY_NONE;
+    sKBDCapsActive = FALSE;
+    sKBDCmdBlock = KBD_CMD_DIRECT;
+    mem_clear(sKBDHeldFrames, sizeof(sKBDHeldFrames), 0);
+}
+
+static void KBD_Update(void) {
+    int shift = KBD_KeyHeld(KBD_KEY_LSHIFT) || KBD_KeyHeld(KBD_KEY_RSHIFT);
+    int alt = KBD_KeyHeld(KBD_KEY_ALT) || KBD_KeyHeld(KBD_KEY_CTRL);
+    int i;
+
+    SITransfer(KBD_CHANNEL, (void*)&sKBDCmdBlock, 1, sKBDResponse, sizeof(sKBDResponse), &KBD_TransferCallback, 0);
+
+    if (KBD_KeyHeld(KBD_KEY_CAPSLOCK) && sKBDHeldFrames[KBD_KEY_CAPSLOCK] == 0) sKBDCapsActive = !sKBDCapsActive;
+    shift ^= sKBDCapsActive;
+
+    for (i = 0; i < 3; i++) {
+        u8 key = sKBDPrevKeys[i];
+        if (key != KBD_KEY_NONE && !KBD_KeyHeld(key)) sKBDHeldFrames[key] = 0;
+    }
+
+    for (i = 0; i < 3; i++) {
+        u8 key = sKBDCurKeys[i];
+        if (key == KBD_KEY_NONE) continue;
+
+        if (sKBDHeldFrames[key] == 0 || (sKBDHeldFrames[key] >= KBD_REPEAT_INITIAL
+            && (sKBDHeldFrames[key] - KBD_REPEAT_INITIAL) % KBD_REPEAT_RATE == 0)) {
+            int code = KBD_TranslateKey(key, shift, alt);
+            if (code >= 0) KBD_QueuePush(code);
+        }
+
+        if (sKBDHeldFrames[key] < 0xFF) sKBDHeldFrames[key]++;
+    }
+
+    sKBDPrevKeys[0] = sKBDCurKeys[0];
+    sKBDPrevKeys[1] = sKBDCurKeys[1];
+    sKBDPrevKeys[2] = sKBDCurKeys[2];
+}
+#endif
 
 static u8 mED_ornament_table[] = {
     // clang-format off
@@ -1732,9 +1948,61 @@ static void mED_move_Play(Submenu* submenu, mSM_MenuInfo_c* menu_info) {
             editor_ovl->cursol_opacity_step = 0;
         }
 
+#ifdef ACME
+        /* Allow typing in the editor directly using a keyboard or keyboard controller */
+        KBD_Update();
+        if (sKBDQueueLen > 0) {
+            int typed = sKBDQueue[0];
+            int i;
+
+            sKBDQueueLen--;
+            for (i = 0; i < sKBDQueueLen; i++) {
+                sKBDQueue[i] = sKBDQueue[i + 1];
+            }
+
+           if (typed >= KBD_CMD_BASE && typed < KBD_CMD_BASE + mED_COMMAND_NUM) {
+                editor_ovl->command = typed - KBD_CMD_BASE;
+            } else if (typed == KBD_CMD_ENTER) {
+                if (editor_ovl->max_line_no <= 1) {
+                    editor_ovl->command = mED_COMMAND_END_EDIT;
+                } else {
+                    editor_ovl->now_code = CHAR_NEW_LINE;
+                    editor_ovl->command = mED_COMMAND_OUTPUT_CODE;
+                }
+            } else if (typed == KBD_CMD_HOME) {
+                editor_ovl->cursor_idx -= editor_ovl->_22;
+                editor_ovl->command = mED_COMMAND_NONE;
+                sAdo_SysTrgStart(0x1003);
+            } else if (typed == KBD_CMD_END) {
+                int cut = (menu_info->data0 != mED_TYPE_PASSWORDCHK);
+                u8* str_p = editor_ovl->input_str + editor_ovl->cursor_idx;
+                s16 width = editor_ovl->_26;
+
+                while (editor_ovl->cursor_idx < editor_ovl->now_str_len && *str_p != CHAR_NEW_LINE) {
+                    s16 w = mFont_GetCodeWidth(*str_p, cut);
+                    if (width + w > editor_ovl->line_width) break;
+                    width += w;
+                    editor_ovl->cursor_idx++;
+                    str_p++;
+                }
+
+                editor_ovl->command = mED_COMMAND_NONE;
+                sAdo_SysTrgStart(0x1003);
+            } else {
+                editor_ovl->now_code = (u8)typed;
+                editor_ovl->command = mED_COMMAND_OUTPUT_CODE;
+            }
+        }
+        else{
+            mED_set_stick_area(editor_ovl);
+            mED_move_keyboard_cursor(editor_ovl);
+            mED_set_command(editor_ovl);
+        }
+#else
         mED_set_stick_area(editor_ovl);
         mED_move_keyboard_cursor(editor_ovl);
         mED_set_command(editor_ovl);
+#endif
         (*mED_edit_func[menu_info->data0])(submenu, menu_info);
 
         if (editor_ovl->command_processed) {
@@ -2482,6 +2750,9 @@ extern void mED_editor_ovl_construct(Submenu* submenu) {
     }
 
     mED_init(submenu, menu_info);
+#ifdef ACME
+    KBD_Init();
+#endif
     mED_editor_ovl_init(submenu);
     mED_editor_ovl_set_proc(submenu);
     submenu->overlay->editor_ovl->end_code_draw = &mED_endCode_draw;
