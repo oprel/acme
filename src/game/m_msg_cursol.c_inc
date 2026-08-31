@@ -5,12 +5,25 @@ static u16 msg_records[MSG_RECORD_COUNT];
 static int msg_record_index = 0;
 static int msg_record_seen_before = FALSE;
 
+static int mMsg_Repetitive_Dialogue_Scene(int scene){
+  switch(scene){
+    case SCENE_PLAYERSELECT_SAVE: // save scene
+    case SCENE_PLAYERSELECT_2:    // player select
+    case SCENE_SHOP0:             // nook's cranny
+    case SCENE_CONVENI:           // nook 'n' go
+    case SCENE_SUPER:             // nookway
+    case SCENE_DEPART:            // nookington's 1st floor
+    case SCENE_DEPART_2:          // nookington's 2nd floor
+      return TRUE;
+    default: return FALSE;
+  }
+}
+
 static int mMsg_Record(u16 msg_no) {
   int i = 0;
   int max_i = MIN(MSG_RECORD_COUNT, msg_record_index);
-  int scene = Save_Get(scene_no);
 
-  if (scene == SCENE_PLAYERSELECT_SAVE || scene == SCENE_PLAYERSELECT_2){
+  if (mMsg_Repetitive_Dialogue_Scene(Save_Get(scene_no))){
     msg_record_seen_before = TRUE;
     return msg_record_seen_before;
   }
@@ -1147,7 +1160,7 @@ static int mMsg_Main_Cursol_ControlCursol(mMsg_Window_c* msg_p) {
 #ifdef ACME 
   /* Allow for speeding up text with L,R and D-Pad */
   if ((msg_p->status_flags & mMsg_STATUS_FLAG_CURSOL_JUST) == 0 &&
-    (chkTrigger(BUTTON_B) || chkButton(BUTTON_L) || chkButton(BUTTON_R) || 
+    (chkTrigger(BUTTON_B) || chkButton(BUTTON_L) || chkButton(BUTTON_R) || chkButton(BUTTON_Z) ||
     chkButton(BUTTON_DDOWN) || chkButton(BUTTON_DUP) || chkButton(BUTTON_DLEFT) || chkButton(BUTTON_DRIGHT))) {
 #else
   if (chkTrigger(BUTTON_B) && (msg_p->status_flags & mMsg_STATUS_FLAG_CURSOL_JUST) == 0) {

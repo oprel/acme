@@ -3,7 +3,7 @@ static int mMsg_Check_ScrollOrder(mMsg_Window_c* msg_p) {
   /* Allow to continue text by tapping D-Pad or holding L/R */
   return (chkTrigger(BUTTON_A) || chkTrigger(BUTTON_B) ||
           chkTrigger(BUTTON_DDOWN) || chkTrigger(BUTTON_DUP) || chkTrigger(BUTTON_DLEFT) || chkTrigger(BUTTON_DRIGHT) ||
-          chkButton(BUTTON_L) || chkButton(BUTTON_R) );
+          chkButton(BUTTON_L) || chkButton(BUTTON_R) || chkButton(BUTTON_Z));
 #else
   return (chkTrigger(BUTTON_A) || chkTrigger(BUTTON_B));
 #endif
