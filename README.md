@@ -21,6 +21,12 @@ All changes are surrounded by the `ACME` tag and have comments to explain what t
 - Picked-up Bells now go directly into your wallet when there is enough room.
 - Automatic word wrapping when writing letter/bulletin board/diary.
 - Cursor wraps vertically when selecting letter recipient.
+- Can still progress villager quests if they are inside an igloo.
+- Balloons will target a new tree if it missed the first one.
+- Can put multiple items into closets at once.
+- Butterflies can land on any type of flower.
+- Can go to Animal Island without a GBA connected.
+- Save files can be freely copied/moved to a different memory card.
 - Nookington's upgrade doesn't require multiplayer.
 - Items exclusive to external devices/codes are now regularly obtainable: 
   - All NES games
