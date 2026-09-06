@@ -22,7 +22,7 @@ echo Success! Created: %OUT_ISO%
 
 if exist "%~dp0xdelta3.exe" (
     echo Creating xdelta patch:
-    "%~dp0xdelta3.exe" -e -f -s "Animal Crossing (USA).iso" "%OUT_ISO%" "Animal Crossing (ACME).xdelta" || exit /b
+    "%~dp0xdelta3.exe" -9 -S lzma -e -f -s "Animal Crossing (USA).iso" "%OUT_ISO%" "Animal Crossing (ACME).xdelta" || exit /b
     echo Success! Created: Animal Crossing ^(ACME^).xdelta
 )
 
